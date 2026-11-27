@@ -5,6 +5,16 @@
 // =====================================================================
 window.NAWA_CHANGELOG = [
   {
+    v: '1.2', t: '27 November 2026',
+    add: [
+      'Tombol "Periksa Pembaruan" di Profil'
+    ],
+    fix: [
+      'Aplikasi yang sudah terpasang kini memperbarui diri otomatis, tanpa perlu hapus dan install ulang',
+      'Pembaruan dicek setiap aplikasi dibuka kembali'
+    ]
+  },
+  {
     v: '1.1', t: '27 November 2026',
     add: [
       'Postingan di Beranda: admin bisa memposting teks dan gambar (maks. 1 MB)',

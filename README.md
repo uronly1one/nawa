@@ -12,6 +12,9 @@ PWA nirlaba untuk jama'ah sholawat. Fondasi: **Supabase** + **GitHub Pages**.
 | `supabase.sql` | Database awal v1.0 (cukup dijalankan sekali, sudah dilakukan) |
 | `update-v1.1.sql` | Tambahan database v1.1 (postingan, like, komentar) |
 
+## Catatan update aplikasi yang sudah terpasang
+Mulai v1.2, aplikasi yang sudah terinstal memperbarui diri otomatis (muat ulang sendiri sekali saat ada versi baru). Tombol **Periksa Pembaruan** ada di Profil. Untuk perangkat yang masih tersangkut versi lama: unggah v1.2 ke GitHub, lalu buka aplikasi, tutup penuh, dan buka lagi satu kali.
+
 ## Memasang revisi v1.1
 1. Di Supabase → SQL Editor, hapus isi lama, tempel isi `update-v1.1.sql`, Run **sekali**.
 2. Di GitHub repo, unggah/timpa semua file dari zip (Add file → Upload files → Commit).

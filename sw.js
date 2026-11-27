@@ -1,8 +1,15 @@
-const CACHE = 'nawa-v1.1';
+const CACHE = 'nawa-v1.2';
 const SHELL = ['./', 'index.html', 'style.css', 'app.js', 'config.js', 'changelog.js', 'manifest.webmanifest', 'icon-192.png', 'icon-512.png'];
 
+// Pasang: ambil file TERBARU langsung dari server (lewati cache browser), lalu aktif seketika
 self.addEventListener('install', e => {
-  e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL)).then(() => self.skipWaiting()));
+  e.waitUntil(
+    caches.open(CACHE)
+      .then(c => Promise.all(SHELL.map(u =>
+        fetch(new Request(u, { cache: 'reload' })).then(r => { if (!r.ok) throw new Error(u); return c.put(u, r); })
+      )))
+      .then(() => self.skipWaiting())
+  );
 });
 
 self.addEventListener('activate', e => {
@@ -18,17 +25,32 @@ self.addEventListener('fetch', e => {
   if (req.method !== 'GET') return;
   const url = new URL(req.url);
 
-  // Data & file Supabase: selalu langsung ke jaringan
+  // Data & file Supabase: langsung ke jaringan
   if (url.hostname.endsWith('supabase.co')) return;
 
-  // Cangkang aplikasi + pustaka CDN: tampil instan dari cache, diperbarui di belakang layar
-  const ok = url.origin === location.origin || url.hostname === 'cdn.jsdelivr.net';
-  if (!ok) return;
-  e.respondWith(
-    caches.open(CACHE).then(async c => {
-      const hit = await c.match(req, { ignoreSearch: true });
-      const net = fetch(req).then(r => { if (r && r.ok) c.put(req, r.clone()); return r; }).catch(() => hit);
-      return hit || net || (req.mode === 'navigate' ? c.match('index.html') : undefined);
-    })
-  );
+  // Pustaka CDN: dari cache dulu (jarang berubah)
+  if (url.hostname === 'cdn.jsdelivr.net') {
+    e.respondWith(caches.open(CACHE).then(async c => {
+      const hit = await c.match(req);
+      if (hit) return hit;
+      const r = await fetch(req);
+      if (r && r.ok) c.put(req, r.clone());
+      return r;
+    }));
+    return;
+  }
+
+  if (url.origin !== location.origin) return;
+
+  // File aplikasi: selalu cek versi terbaru dulu, cache hanya cadangan saat offline
+  e.respondWith((async () => {
+    const c = await caches.open(CACHE);
+    try {
+      const r = await fetch(new Request(req, { cache: 'no-cache' }));
+      if (r && r.ok) c.put(req, r.clone());
+      return r;
+    } catch {
+      return (await c.match(req, { ignoreSearch: true })) || (req.mode === 'navigate' ? await c.match('index.html') : undefined) || Response.error();
+    }
+  })());
 });

@@ -31,6 +31,7 @@ const I = {
   logout: '<path d="M9 4H5v16h4M16 8l4 4-4 4M20 12H9"/>',
   camera: '<path d="M4 8h3l2-3h6l2 3h3v12H4z"/><circle cx="12" cy="13" r="3.5"/>',
   copy: '<rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3"/>',
+  refresh: '<path d="M20 11a8 8 0 1 0-2.3 5.7M20 4v7h-7"/>',
   comment: '<path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z"/>',
   link: '<path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/>'
 };
@@ -360,6 +361,7 @@ function onAction(e) {
   else if (a === 'coms') openComments(x);
   else if (a === 'post') composePost();
   else if (a === 'delpost') confirmBox('Hapus postingan ini?', () => deletePost(x));
+  else if (a === 'update') cekUpdate();
   else if (a === 'install') installHelp();
   else if (a === 'info') infoVersi();
   else if (a === 'photo') changePhoto();
@@ -493,6 +495,7 @@ V.profil = el => {
     <div class="card" style="padding:4px 0 10px">${seg([['auto', 'Otomatis'], ['light', 'Terang'], ['dark', 'Gelap']], th).replace(/data-a="arg:/g, 'data-a="theme:')}</div>
     <div class="card" style="padding:4px 14px">
       ${standalone() ? '' : `<button class="lrow" data-a="install">${ic('download')}Cara Install Aplikasi</button>`}
+      <button class="lrow" data-a="update">${ic('refresh')}Periksa Pembaruan</button>
       <button class="lrow" data-a="info">${ic('info')}Info Versi · Ver. ${esc(C.VERSION)}</button>
       <button class="lrow out" data-a="logout">${ic('logout')}Keluar</button></div>
   </div>`;
@@ -713,6 +716,24 @@ addEventListener('popstate', e => {
   const st = e.state; if (st && st.r) go(st.r, st.a ?? undefined, false, true);
 });
 sb.auth.onAuthStateChange(ev => { if (ev === 'SIGNED_OUT' && S.user) { S.user = null; authView('login'); } });
-if ('serviceWorker' in navigator) addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
+let swReg = null, swReloaded = false;
+if ('serviceWorker' in navigator) {
+  const hadCtl = !!navigator.serviceWorker.controller;
+  // Versi baru aktif -> muat ulang otomatis sekali (hanya jika bukan pemasangan pertama)
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (!hadCtl || swReloaded) return; swReloaded = true;
+    if (modals.length) toast('Pembaruan siap. Tutup lalu buka ulang aplikasi'); else location.reload();
+  });
+  addEventListener('load', () => navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' })
+    .then(r => { swReg = r; r.update().catch(() => {}); }).catch(() => {}));
+  // Setiap aplikasi dibuka kembali dari latar belakang, cek pembaruan
+  document.addEventListener('visibilitychange', () => { if (!document.hidden && swReg) swReg.update().catch(() => {}); });
+}
+async function cekUpdate() {
+  if (!swReg) return toast('Pembaruan hanya tersedia saat online');
+  toast('Memeriksa pembaruan…');
+  try { await swReg.update(); } catch { return toast('Tidak ada koneksi internet'); }
+  setTimeout(() => { if (!swReloaded) toast('Aplikasi sudah versi terbaru'); }, 2500);
+}
 enter().catch(() => { authView('login'); hideSplash(); });
 })();
