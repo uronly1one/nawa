@@ -104,18 +104,51 @@ const hideSplash = () => { const s = $('#splash'); if (s) { s.classList.add('off
 
 /* ---------- Install ---------- */
 let dip = null;
-addEventListener('beforeinstallprompt', e => { e.preventDefault(); dip = e; });
-addEventListener('appinstalled', () => { dip = null; $$('#inst,[data-a="install"]').forEach(x => x.remove()); });
+const UA = navigator.userAgent;
+const IOS = /iphone|ipad|ipod/i.test(UA) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+const MOBILE_FF = /firefox/i.test(UA) && /android/i.test(UA);
 const standalone = () => matchMedia('(display-mode: standalone)').matches || matchMedia('(display-mode: minimal-ui)').matches || matchMedia('(display-mode: fullscreen)').matches || navigator.standalone === true;
+const lsGet = k => { try { return localStorage.getItem(k); } catch { return null; } };
+const lsSet = (k, v) => { try { localStorage.setItem(k, v); } catch { } };
+const ssGet = k => { try { return sessionStorage.getItem(k); } catch { return null; } };
+const ssSet = (k, v) => { try { sessionStorage.setItem(k, v); } catch { } };
+
+addEventListener('beforeinstallprompt', e => { e.preventDefault(); dip = e; setTimeout(() => installSheet('prompt'), 1500); });
+addEventListener('appinstalled', () => {
+  dip = null; lsSet('nawa_installed', '1'); hideSheet();
+  $$('#inst,[data-a="install"]').forEach(x => x.remove());
+});
+
+// Popup Instal: muncul di browser (bukan di aplikasi yang sudah terpasang), hilang setelah terpasang
+function hideSheet() { const e = $('#isheet'); if (!e) return; e.classList.remove('on'); setTimeout(() => e.remove(), 400); }
+function installSheet(kind) {
+  if (standalone() || lsGet('nawa_installed') || ssGet('nawa_inst_later') || $('#isheet')) return;
+  const prompt = kind === 'prompt' && dip;
+  const e = document.createElement('div'); e.id = 'isheet'; e.className = 'isheet';
+  e.innerHTML = `<img src="icon-192.png" alt=""><div class="tx"><b>Pasang Aplikasi Tambak Bersholawat</b><small>${prompt ? 'Pasang di layar utama HP agar lebih mudah dibuka, seperti aplikasi biasa.' : 'Ketuk tombol di bawah untuk melihat cara memasangnya di layar utama HP.'}</small></div>
+    <div class="acts"><button class="btn" id="is-go">${prompt ? 'Instal' : 'Lihat Caranya'}</button><button class="btn ghost" id="is-no">Nanti saja</button></div>`;
+  document.body.appendChild(e);
+  requestAnimationFrame(() => requestAnimationFrame(() => e.classList.add('on')));
+  $('#is-no', e).onclick = () => { ssSet('nawa_inst_later', '1'); hideSheet(); };
+  $('#is-go', e).onclick = async () => {
+    if (prompt && dip) {
+      const d = dip; dip = null; hideSheet();
+      try { d.prompt(); const r = await d.userChoice; if (r.outcome !== 'accepted') ssSet('nawa_inst_later', '1'); } catch { }
+    } else { ssSet('nawa_inst_later', '1'); hideSheet(); installHelp(); }
+  };
+}
+// Peramban yang tidak punya tombol instal otomatis (iPhone/iPad, Firefox Android): tampilkan petunjuk
+addEventListener('load', () => { if ((IOS || MOBILE_FF) && !standalone()) setTimeout(() => installSheet('manual'), 2200); });
+
 function installHelp() {
+  const steps = IOS
+    ? '<div><b>iPhone / iPad (Safari)</b><ol><li>Ketuk tombol Bagikan (kotak dengan panah ke atas) di bagian bawah layar</li><li>Geser ke bawah, pilih "Tambah ke Layar Utama"</li><li>Ketuk Tambah</li></ol><small style="margin-top:8px">Jika bukan Safari, buka dulu link aplikasi ini di Safari.</small></div>'
+    : '<div><b>Android</b><ol><li>Ketuk menu ⋮ (tiga titik) di pojok kanan atas browser</li><li>Pilih "Instal aplikasi" atau "Tambahkan ke layar utama"</li><li>Ketuk Instal</li></ol></div>';
   const m = modal(`<h3>Cara Install Aplikasi</h3>${standalone() ? '<p>Aplikasi sudah terpasang di perangkat ini.</p>' : `
     ${dip ? '<button class="btn" id="do-inst">Install Sekarang</button>' : ''}
-    <div class="steps">
-      <div><b>Android (Chrome)</b><ol><li>Ketuk menu ⋮ di kanan atas</li><li>Pilih "Instal aplikasi" atau "Tambahkan ke layar utama"</li><li>Ketuk Instal</li></ol></div>
-      <div><b>iPhone / iPad (Safari)</b><ol><li>Ketuk tombol Bagikan (kotak dengan panah ke atas)</li><li>Pilih "Tambah ke Layar Utama"</li><li>Ketuk Tambah</li></ol></div>
-    </div>`}`);
+    <div class="steps">${steps}</div>`}`);
   const b = $('#do-inst', m.el);
-  if (b) b.onclick = async () => { dip.prompt(); await dip.userChoice; dip = null; m.close(); };
+  if (b) b.onclick = async () => { const d = dip; dip = null; m.close(); try { d.prompt(); await d.userChoice; } catch { } };
 }
 function infoVersi() {
   const c = CHANGELOG[0]; if (!c) return;

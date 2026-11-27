@@ -6,6 +6,14 @@
 // =====================================================================
 window.NAWA_CHANGELOG = [
   {
+    v: '1.6', t: '27 November 2026',
+    add: [
+      'Popup Instal otomatis saat aplikasi dibuka lewat link di browser, dan hilang setelah terpasang',
+      'Petunjuk cara install menyesuaikan perangkat (Android atau iPhone)'
+    ],
+    fix: []
+  },
+  {
     v: '1.5', t: '27 November 2026',
     add: [],
     fix: [
