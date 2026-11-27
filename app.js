@@ -47,7 +47,7 @@ document.addEventListener('copy', e => { if (!inField(e.target)) e.preventDefaul
 /* ---------- State ---------- */
 const S = { user: null, profile: null, admin: false, route: 'beranda', arg: null };
 const cache = {}; const ROWS = {}; const modals = [];
-const DEF = { pustaka: 'teks', komunitas: 'kelompok', dukung: 'program' };
+const DEF = { pustaka: 'teks', komunitas: 'user', dukung: 'program' };
 const ORDER = ['beranda', 'jadwal', 'pustaka', 'komunitas', 'dukung', 'profil'];
 const NAV = [['beranda', 'Beranda', 'home'], ['jadwal', 'Jadwal', 'calendar'], ['pustaka', 'Pustaka', 'book'], ['komunitas', 'Komunitas', 'users'], ['dukung', 'Dukung', 'heart']];
 const app = $('#app');
@@ -256,7 +256,7 @@ async function enter() {
     await sb.auth.signOut(); authView('login'); hideSplash();
     toast(p.error ? msg(p.error) : 'Data akun tidak ditemukan'); return;
   }
-  shell(); hideSplash();
+  shell(); startPresence(); hideSplash();
   if (!S.admin && !S.profile.foto_url) gate();
 }
 
@@ -394,6 +394,7 @@ function onAction(e) {
   else if (a === 'img') openImg(ROWS['galeri:' + x]);
   else if (a === 'copy') { navigator.clipboard?.writeText(t.dataset.v || '').then(() => toast('Nomor disalin'), () => toast('Gagal menyalin')); }
   else if (a === 'like') toggleLike(x);
+  else if (a === 'yt') playYt(t, x);
   else if (a === 'coms') openComments(x);
   else if (a === 'post') composePost();
   else if (a === 'delpost') confirmBox('Hapus postingan ini?', () => deletePost(x));
@@ -402,7 +403,7 @@ function onAction(e) {
   else if (a === 'info') infoVersi();
   else if (a === 'photo') changePhoto();
   else if (a === 'theme') { localStorage.setItem('nawa_theme', x); applyTheme(); refresh(); }
-  else if (a === 'logout') confirmBox('Keluar dari aplikasi?', async () => { S.user = null; await sb.auth.signOut(); Object.keys(cache).forEach(k => delete cache[k]); FEED = null; authView('login'); }, 'Keluar');
+  else if (a === 'logout') confirmBox('Keluar dari aplikasi?', async () => { S.user = null; stopPresence(); await sb.auth.signOut(); Object.keys(cache).forEach(k => delete cache[k]); FEED = null; authView('login'); }, 'Keluar');
 }
 
 /* =====================================================================
@@ -484,12 +485,16 @@ function openItem(r) {
 
 V.komunitas = el => {
   const cur = S.arg;
-  el.innerHTML = head('Komunitas', 'Kelompok, usulan, dan galeri kegiatan') + seg([['kelompok', 'Kelompok'], ['usulan', 'Papan Usulan'], ['galeri', 'Galeri']], cur) +
-    `<div class="pad stg" id="ls">${SK}</div>` + (cur === 'usulan' ? `<button class="fab" data-a="add:usulan" aria-label="Kirim usulan">${ic('plus', 26)}</button>` : fab(cur));
+  el.innerHTML = head('Komunitas', 'Pengguna, usulan, dan galeri kegiatan') + seg([['user', 'User'], ['usulan', 'Papan Usulan'], ['galeri', 'Galeri']], cur) +
+    `<div class="pad stg" id="ls">${SK}</div>` + (cur === 'usulan' ? `<button class="fab" data-a="add:usulan" aria-label="Kirim usulan">${ic('plus', 26)}</button>` : cur === 'galeri' ? fab(cur) : '');
+  if (cur === 'user') {
+    if (S.admin) load('profiles', (rows, err) => { const ls = $('#ls', el); if (err && ls) ls.innerHTML = `<div class="empty">Gagal memuat.<br>${esc(msg(err))}</div>`; else renderUsers(); });
+    else renderUsers();
+    return;
+  }
   load(cur, (rows, err) => {
     const ls = $('#ls', el); if (!ls) return;
-    if (cur === 'kelompok') fill(ls, cur, rows, err, r => `<div class="card row"><div class="dt">${ic('users', 24)}</div><div class="bd"><b>${esc(r.nama)}</b>${r.info ? `<small>${esc(r.info)}</small>` : ''}${r.kontak ? `<small>${esc(r.kontak)}</small>` : ''}</div>${admBtns(cur, r)}</div>`, 'Belum ada kelompok');
-    else if (cur === 'usulan') fill(ls, cur, rows, err, r => {
+    if (cur === 'usulan') fill(ls, cur, rows, err, r => {
       const mine = r.user_id === S.user.id;
       const btn = S.admin || mine ? `<div class="adm"><button class="dl" data-a="del:usulan:${r.id}" aria-label="Hapus">${ic('trash', 18)}</button></div>` : '';
       return `<div class="card row"><div class="bd"><b>${esc(r.judul)}</b>${r.isi ? `<small>${esc(r.isi)}</small>` : ''}<small>— ${esc(r.nama || 'Anggota')}</small></div>${btn}</div>`;
@@ -502,6 +507,45 @@ V.komunitas = el => {
     }
   });
 };
+
+/* ---------- Daftar User (hanya lihat) + status aktif ---------- */
+let PCH = null; const ONLINE = new Map();
+function startPresence() {
+  if (PCH || !S.user) return;
+  const ch = sb.channel('nawa-online', { config: { presence: { key: S.user.id } } });
+  ch.on('presence', { event: 'sync' }, () => {
+    ONLINE.clear();
+    for (const [k, arr] of Object.entries(ch.presenceState())) {
+      const m = arr[arr.length - 1];
+      if (m && m.nama) ONLINE.set(k, { nama: m.nama, foto: m.foto || null });
+    }
+    renderUsers();
+  });
+  ch.subscribe(st => { if (st === 'SUBSCRIBED') trackMe(); });
+  PCH = ch;
+}
+function trackMe() { if (PCH && !S.admin && S.profile) PCH.track({ nama: S.profile.nama, foto: S.profile.foto_url || null }).catch(() => { }); }
+function stopPresence() { if (PCH) { sb.removeChannel(PCH); PCH = null; } ONLINE.clear(); }
+function userCard(p, online, admin, me) {
+  const av = p.foto_url ? `<img src="${esc(p.foto_url)}" alt="">` : esc((p.nama || '?')[0].toUpperCase());
+  return `<div class="card row urow"><div class="uav">${av}${online ? '<i class="od"></i>' : ''}</div><div class="bd"><b>${esc(p.nama)}${me ? ' <span class="me">(Anda)</span>' : ''}</b>${admin ? `<small>${esc(showWa(p.wa))}</small><small>${esc(p.alamat || '')}</small>` : '<small>Sedang aktif</small>'}</div></div>`;
+}
+function renderUsers() {
+  const ls = $('#ls'); if (!ls || S.route !== 'komunitas' || S.arg !== 'user') return;
+  let html;
+  if (S.admin) {
+    const rows = cache.profiles; if (!rows) return;
+    html = `<div class="sumline"><b>${rows.length}</b> terdaftar · <b>${ONLINE.size}</b> aktif</div>` +
+      (rows.length ? rows.map(r => userCard(r, ONLINE.has(r.id), true)).join('') : '<div class="empty">Belum ada user terdaftar</div>');
+  } else {
+    const list = [...ONLINE.entries()].map(([id, m]) => ({ id, nama: m.nama, foto_url: m.foto })).sort((a, b) => (a.id === S.user.id ? -1 : b.id === S.user.id ? 1 : a.nama.localeCompare(b.nama)));
+    html = `<div class="sumline"><b>${list.length}</b> user sedang aktif</div>` + (list.length ? list.map(r => userCard(r, true, false, r.id === S.user.id)).join('') : '<div class="empty">Memuat…</div>');
+  }
+  const first = !ls.dataset.p; ls.dataset.p = 1;
+  if (!first) ls.classList.add('nostg');
+  ls.innerHTML = html;
+  if (first) [...ls.children].slice(0, 10).forEach((c, i) => c.style.setProperty('--i', i));
+}
 function openImg(r) { if (r) modal(`<div class="lb"><img src="${esc(r.foto_url)}" alt="">${r.judul ? `<p style="margin-top:10px">${esc(r.judul)}</p>` : ''}</div>`); }
 
 V.dukung = el => {
@@ -574,10 +618,31 @@ const ago = t => {
   if (s < 86400) return Math.floor(s / 3600) + ' jam lalu'; if (s < 604800) return Math.floor(s / 86400) + ' hari lalu';
   return new Date(t).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
 };
+function ytId(u) {
+  u = (u || '').trim(); if (!u) return null;
+  try {
+    const x = new URL(/^https?:\/\//i.test(u) ? u : 'https://' + u);
+    const h = x.hostname.replace(/^(www\.|m\.|music\.)/, '');
+    let id = null;
+    if (h === 'youtu.be') id = x.pathname.slice(1).split('/')[0];
+    else if (h === 'youtube.com' || h === 'youtube-nocookie.com') {
+      if (x.pathname === '/watch') id = x.searchParams.get('v');
+      else { const m = x.pathname.match(/^\/(?:shorts|embed|live|v)\/([^/?#]+)/); if (m) id = m[1]; }
+    }
+    return id && /^[\w-]{11}$/.test(id) ? id : null;
+  } catch { return null; }
+}
+const ytThumb = id => `https://i.ytimg.com/vi/${id}/hqdefault.jpg`;
+const ytHtml = id => `<div class="vid" data-a="yt:${esc(id)}" role="button" aria-label="Putar video"><img loading="lazy" src="${ytThumb(esc(id))}" alt=""><span class="play"><svg width="30" height="30" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5v13l10.5-6.5z" fill="currentColor"/></svg></span></div>`;
+function playYt(t, id) {
+  if (!/^[\w-]{11}$/.test(id)) return;
+  t.removeAttribute('data-a');
+  t.innerHTML = `<iframe src="https://www.youtube-nocookie.com/embed/${id}?autoplay=1&rel=0&playsinline=1" title="Video" allow="accelerometer; autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe>`;
+}
 function postHtml(p) {
   return `<article class="post" data-id="${p.id}">
     <div class="ph"><img src="icon-192.png" alt=""><div><b>Tambak Bersholawat</b><small>${ago(p.created_at)}</small></div>${S.admin ? `<div class="adm"><button class="dl" data-a="delpost:${p.id}" aria-label="Hapus">${ic('trash', 18)}</button></div>` : ''}</div>
-    ${p.gambar_url ? `<img class="pimg" loading="lazy" src="${esc(p.gambar_url)}" alt="">` : ''}
+    ${p.youtube_id ? ytHtml(p.youtube_id) : p.gambar_url ? `<img class="pimg" loading="lazy" src="${esc(p.gambar_url)}" alt="">` : ''}
     ${p.isi ? `<p class="pt">${esc(p.isi)}</p>` : ''}
     <div class="pa"><button data-a="like:${p.id}" class="${p.liked ? 'liked' : ''}" aria-label="Suka">${ic('heart', 22)}<span>${p.likes}</span></button><button data-a="coms:${p.id}" aria-label="Komentar">${ic('comment', 22)}<span>${p.coms}</span></button></div>
   </article>`;
@@ -645,6 +710,7 @@ function composePost() {
   let blob = null;
   const m = modal(`<h3>Buat Postingan</h3><form>
     <label class="fld"><span>Tulisan</span><textarea name="isi" rows="4" maxlength="2000"></textarea></label>
+    <label class="fld"><span>Tautan video YouTube (opsional)</span><input name="yt" inputmode="url" autocomplete="off" placeholder="https://youtu.be/..."></label>
     <div class="gp"><div class="pv" id="pv"></div><button type="button" class="btn ghost" id="ppick" style="width:auto;padding:10px 20px">Pilih Gambar (maks. 1 MB)</button></div>
     <button class="btn">Posting</button></form>`);
   $('#ppick', m.el).onclick = async () => {
@@ -652,13 +718,20 @@ function composePost() {
     toast('Memproses gambar…');
     const b = await shrink(f);
     if (!b) return toast('Gambar tidak bisa dikecilkan ke 1 MB');
-    blob = b; $('#pv', m.el).innerHTML = `<img src="${URL.createObjectURL(b)}" alt="">`;
+    blob = b; showPv();
     $('#ppick', m.el).textContent = `Ganti Gambar (${Math.round(b.size / 1024)} KB)`;
   };
+  const showPv = () => {
+    const id = ytId($('[name=yt]', m.el).value);
+    $('#pv', m.el).innerHTML = id ? `<img src="${ytThumb(id)}" alt="">` : blob ? `<img src="${URL.createObjectURL(blob)}" alt="">` : '';
+  };
+  $('[name=yt]', m.el).addEventListener('input', showPv);
   $('form', m.el).onsubmit = async e => {
     e.preventDefault();
-    const isi = new FormData(e.target).get('isi').trim();
-    if (!isi && !blob) return toast('Tulis sesuatu atau pilih gambar');
+    const fd = new FormData(e.target), isi = fd.get('isi').trim(), ytRaw = (fd.get('yt') || '').trim(), vid = ytId(ytRaw);
+    if (ytRaw && !vid) return toast('Tautan YouTube tidak valid');
+    if (vid && blob) return toast('Pilih salah satu: gambar atau video');
+    if (!isi && !blob && !vid) return toast('Tulis sesuatu, pilih gambar, atau isi tautan video');
     const btn = $('form>.btn', m.el); btn.disabled = true; btn.textContent = 'Memposting…';
     try {
       let url = null;
@@ -668,7 +741,8 @@ function composePost() {
         if (error) throw error;
         url = sb.storage.from('posts').getPublicUrl(path).data.publicUrl;
       }
-      const { error } = await sb.from('posts').insert({ isi: isi || null, gambar_url: url });
+      const row = { isi: isi || null, gambar_url: url }; if (vid) row.youtube_id = vid;
+      const { error } = await sb.from('posts').insert(row);
       if (error) throw error;
       m.close(); toast('Terposting');
       fetchFeed().then(f => { FEED = f; renderFeed(); });
@@ -731,7 +805,7 @@ async function changePhoto() {
     const url = await uploadAvatar(blob);
     const { error } = await sb.from('profiles').update({ foto_url: url }).eq('id', S.user.id);
     if (error) throw error;
-    S.profile.foto_url = url; updAv(); refresh(); toast('Foto diperbarui');
+    S.profile.foto_url = url; updAv(); trackMe(); refresh(); toast('Foto diperbarui');
   } catch (e) { toast(msg(e)); }
 }
 function gate() {
@@ -752,7 +826,7 @@ function gate() {
       const url = await uploadAvatar(blob);
       const { error } = await sb.from('profiles').update({ foto_url: url, alamat: adr }).eq('id', S.user.id);
       if (error) throw error;
-      S.profile.foto_url = url; S.profile.alamat = adr; updAv(); m.close(); toast('Selamat datang!');
+      S.profile.foto_url = url; S.profile.alamat = adr; updAv(); trackMe(); m.close(); toast('Selamat datang!');
     } catch (e) { toast(msg(e)); btn.disabled = false; btn.textContent = 'Simpan'; }
   };
 }
@@ -763,7 +837,7 @@ addEventListener('popstate', e => {
   if (!S.user || !$('#main')) return;
   const st = e.state; if (st && st.r) go(st.r, st.a ?? undefined, false, true);
 });
-sb.auth.onAuthStateChange(ev => { if (ev === 'SIGNED_OUT' && S.user) { S.user = null; authView('login'); } });
+sb.auth.onAuthStateChange(ev => { if (ev === 'SIGNED_OUT' && S.user) { S.user = null; stopPresence(); authView('login'); } });
 let swReg = null, swReloaded = false;
 if ('serviceWorker' in navigator) {
   const hadCtl = !!navigator.serviceWorker.controller;

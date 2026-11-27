@@ -11,6 +11,7 @@ PWA nirlaba untuk jama'ah sholawat. Fondasi: **Supabase** + **GitHub Pages**.
 | `sw.js`, `manifest.webmanifest`, `icon-*.png` | Agar bisa di-install |
 | `supabase.sql` | Database awal v1.0 (cukup dijalankan sekali, sudah dilakukan) |
 | `update-v1.1.sql` | Tambahan database v1.1 (postingan, like, komentar) |
+| `update-v1.8.sql` | Tambahan database v1.8 (video YouTube di postingan) |
 
 ## Catatan update aplikasi yang sudah terpasang
 Mulai v1.2, aplikasi yang sudah terinstal memperbarui diri otomatis (muat ulang sendiri sekali saat ada versi baru). Tombol **Periksa Pembaruan** ada di Profil. Untuk perangkat yang masih tersangkut versi lama: unggah v1.2 ke GitHub, lalu buka aplikasi, tutup penuh, dan buka lagi satu kali.

@@ -6,6 +6,14 @@
 // =====================================================================
 window.NAWA_CHANGELOG = [
   {
+    v: '1.8', t: '28 November 2026',
+    add: [
+      'Menu Kelompok diganti User: admin melihat semua user terdaftar, user melihat siapa yang sedang aktif (hanya bisa dilihat)',
+      'Admin bisa memposting video YouTube lewat tautan di + Postingan, user tinggal menonton'
+    ],
+    fix: []
+  },
+  {
     v: '1.7', t: '27 November 2026',
     add: [],
     fix: [
