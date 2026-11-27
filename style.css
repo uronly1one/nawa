@@ -210,3 +210,151 @@ audio{width:100%;margin-top:10px}
 .cf input:focus{border-color:var(--pr)}
 .cf .btn{height:44px}
 .pv img{max-width:100%;max-height:220px;border-radius:12px}
+
+/* =====================================================================
+   v1.3 — Pastel & mewah (header, ikon kiri/kanan atas, posisi footer tetap)
+   ===================================================================== */
+:root{
+  --hd:#0f7a4f;--hdt:#fff;
+  --bg:#f4efe8;--sf:#fbf8f3;--sf2:#ece5da;--tx:#1f2b25;--mu:#66756b;
+  --pr:#5b7562;--pr2:#8ba592;--on:#ffffff;--bd:#e6ded2;--ac:#dde7de;
+  --t0:#dce6dd;--t1:#ebe1d3;--t2:#d5e0d3;
+  --bn1:#667d6d;--bn2:#93aa98;--bnt:#ffffff;
+  --sh:0 10px 28px rgba(86,70,40,.09);
+  --serif:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,"Noto Serif",serif;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme=light]){
+    --hd:#4fd69c;--hdt:#05261a;
+    --bg:#0f1511;--sf:#18211b;--sf2:#202c24;--tx:#e6ece8;--mu:#a5b4aa;
+    --pr:#9cbfa8;--pr2:#6f9a7e;--on:#0c1d14;--bd:#2a382f;--ac:#26382d;
+    --t0:#233429;--t1:#352f26;--t2:#27382b;
+    --bn1:#2f4a3a;--bn2:#4a6b57;--bnt:#eef5f0;
+    --sh:0 10px 28px rgba(0,0,0,.35)
+  }
+}
+:root[data-theme=dark]{
+  --hd:#4fd69c;--hdt:#05261a;
+  --bg:#0f1511;--sf:#18211b;--sf2:#202c24;--tx:#e6ece8;--mu:#a5b4aa;
+  --pr:#9cbfa8;--pr2:#6f9a7e;--on:#0c1d14;--bd:#2a382f;--ac:#26382d;
+  --t0:#233429;--t1:#352f26;--t2:#27382b;
+  --bn1:#2f4a3a;--bn2:#4a6b57;--bnt:#eef5f0;
+  --sh:0 10px 28px rgba(0,0,0,.35)
+}
+/* header tetap seperti semula */
+.top{background:var(--hd);color:var(--hdt)}
+
+/* ---------- Dock footer (posisi tetap di bawah, sticky) ---------- */
+.bot{position:relative;margin:0 14px calc(var(--sab) + 10px);padding:6px;border:1px solid var(--bd);border-radius:30px;background:var(--sf);box-shadow:var(--sh)}
+.bot button{position:relative;z-index:1;height:54px;border-radius:24px;font-size:10.5px}
+.ind{position:absolute;left:6px;top:6px;bottom:6px;width:calc((100% - 12px) / 5);border-radius:24px;background:var(--ac);transition:transform .38s var(--ease),opacity .2s;pointer-events:none;will-change:transform}
+.toast{bottom:calc(var(--sab) + 96px);border-radius:99px;padding:10px 18px}
+
+/* ---------- Kabar berjalan: kapsul melayang ---------- */
+.tkw{position:sticky;top:0;z-index:5;padding:12px 16px 8px;background:var(--bg)}
+.ticker{position:relative;top:auto;height:44px;padding:4px;border:1px solid var(--bd);border-radius:99px;background:var(--sf);box-shadow:var(--sh)}
+.tk-ic{height:100%;aspect-ratio:1;padding:0;border-radius:50%;background:var(--ac);font-size:15px}
+.tk-win{padding-left:10px;-webkit-mask-image:linear-gradient(90deg,transparent,#000 12px,#000 calc(100% - 24px),transparent);mask-image:linear-gradient(90deg,transparent,#000 12px,#000 calc(100% - 24px),transparent)}
+.tk-win.st{line-height:34px;padding-left:12px}
+.track{color:var(--tx)}
+
+/* ---------- Beranda ---------- */
+.greet small{font-size:14px;color:var(--mu)}
+.greet h2{font-family:var(--serif);font-size:32px;line-height:1.15;font-weight:600;letter-spacing:-.3px}
+.banner{position:relative;overflow:hidden;border-radius:30px;padding:22px 20px;color:var(--bnt);background:linear-gradient(140deg,var(--bn1),var(--bn2));box-shadow:var(--sh)}
+.banner::before{content:"";position:absolute;right:-30px;top:-34px;width:160px;height:160px;border-radius:50%;background:radial-gradient(circle,rgba(255,255,255,.38),rgba(255,255,255,0) 68%)}
+.banner::after{content:"";position:absolute;right:46px;bottom:-64px;width:150px;height:150px;border-radius:50%;background:radial-gradient(circle,rgba(255,255,255,.16),rgba(255,255,255,0) 70%)}
+.banner>*{position:relative;z-index:1}
+.chip{display:inline-block;padding:4px 12px;border-radius:99px;font-size:11.5px;font-weight:700;letter-spacing:.6px;background:rgba(255,255,255,.2)}
+.banner h3{font-family:var(--serif);font-size:25px;line-height:1.2;margin:12px 0 8px;font-weight:600}
+.banner .meta{display:grid;gap:4px;font-size:13px;opacity:.93;margin-bottom:16px}
+.banner .meta span{display:flex;align-items:center;gap:6px}
+.bpill{padding:10px 18px;border-radius:99px;background:rgba(255,255,255,.94);color:#2f4638;font-size:13px;font-weight:700;transition:transform .15s var(--ease)}
+.bpill:active{transform:scale(.95)}
+.grid{gap:12px}
+.qa{padding:16px 6px;border-radius:24px;background:var(--sf);border:1px solid var(--bd);box-shadow:var(--sh)}
+.qa i{width:48px;height:48px;border-radius:50%;color:var(--pr)}
+.qa i.t0{background:var(--t0)}.qa i.t1{background:var(--t1)}.qa i.t2{background:var(--t2)}
+.dz{padding:18px;border-radius:26px;background:var(--t2);border:1px solid var(--bd);text-align:center}
+.chip2{display:inline-block;padding:3px 12px;border-radius:99px;background:var(--sf);color:var(--pr);font-size:11.5px;font-weight:700}
+.dz .arab{font-size:24px;line-height:2;margin:6px 0 2px}
+.dz small{font-size:13px}
+
+/* ---------- Komponen umum: semua sudut membulat ---------- */
+.head h2{font-family:var(--serif);font-size:27px;font-weight:600;letter-spacing:-.2px}
+.card{border-radius:24px;box-shadow:var(--sh)}
+.dt{border-radius:18px;background:var(--t0);color:var(--pr)}
+.sk{border-radius:22px;border-color:transparent;background:var(--sf2)}
+.seg button{background:var(--sf);border-color:var(--bd)}
+.seg button.on{background:var(--pr);border-color:var(--pr);color:var(--on)}
+.post{border-radius:28px;box-shadow:var(--sh)}
+.pimg{border-radius:0}
+.gal figure{border-radius:22px}
+.md{border-radius:30px;background:var(--sf);box-shadow:0 24px 60px rgba(0,0,0,.3)}
+.fld input,.fld textarea,.fld select{border-radius:16px;background:var(--bg)}
+.btn{padding:14px;border-radius:99px;box-shadow:0 8px 18px rgba(60,80,65,.22)}
+.btn.ghost{background:var(--ac);color:var(--tx);box-shadow:none}
+.btn.dng{background:#b3392d;color:#fff}
+.mini{box-shadow:0 4px 10px rgba(60,80,65,.2)}
+.fab{box-shadow:0 10px 22px rgba(60,80,65,.3)}
+.cf input{border-radius:99px;padding:11px 16px}
+.avbig{border-color:var(--pr2)}
+.camb{background:var(--pr);border-color:var(--sf)}
+.badge{padding:4px 12px;background:var(--ac);color:var(--pr)}
+.lrow:active{background:var(--sf2);border-radius:14px}
+.auth{background:radial-gradient(120% 55% at 50% 0%,var(--t0),var(--bg) 70%)}
+.auth .logo{border-radius:30px;box-shadow:var(--sh)}
+.auth h1{font-family:var(--serif);font-size:27px;font-weight:600}
+.corner{background:var(--sf);box-shadow:var(--sh)}
+.empty{background:var(--sf2);border-radius:22px}
+
+/* =====================================================================
+   v1.4 — Penyempurnaan mewah (posisi header, ikon pojok, dan footer tetap)
+   ===================================================================== */
+:root{--hd1:#4a6454;--hd2:#668170;--hdt:#ffffff;--hh:58px}
+@media (prefers-color-scheme:dark){:root:not([data-theme=light]){--hd1:#1b2c22;--hd2:#27392e;--hdt:#e9f1ec}}
+:root[data-theme=dark]{--hd1:#1b2c22;--hd2:#27392e;--hdt:#e9f1ec}
+
+/* Header: sage dengan sudut bawah membulat */
+.top{position:relative;overflow:hidden;border-radius:0 0 28px 28px;background:linear-gradient(150deg,var(--hd1),var(--hd2));color:var(--hdt);box-shadow:0 10px 26px rgba(38,58,45,.2)}
+.top::before{content:"";position:absolute;right:-44px;top:-76px;width:200px;height:200px;border-radius:50%;background:radial-gradient(circle,rgba(255,255,255,.17),rgba(255,255,255,0) 68%);pointer-events:none}
+.top>*{position:relative;z-index:1}
+.top h1{font-family:var(--serif);font-size:19px;font-weight:600;letter-spacing:.3px}
+
+/* Label bagian: huruf kecil berjarak seperti referensi */
+.sec{font-size:12px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--mu);margin-top:8px}
+.greet .tg{margin-top:2px}
+
+/* Tab segmented (Pustaka, Komunitas, Dukung, Tampilan) */
+.seg{margin:14px 16px 0;padding:5px;gap:4px;background:var(--sf2);border-radius:99px}
+.seg button{flex:1 0 auto;padding:9px 16px;background:transparent;border:0;color:var(--mu)}
+.seg button.on{background:var(--pr);color:var(--on);box-shadow:0 6px 14px rgba(60,80,65,.24)}
+.card .seg{margin:8px 10px 6px}
+
+/* Dock */
+.ind{box-shadow:0 6px 14px rgba(91,117,98,.16)}
+.bot button.on span{font-weight:700}
+
+/* Banner: matahari hangat dan perbukitan lembut */
+.banner::before{right:24px;top:20px;width:62px;height:62px;border-radius:50%;background:radial-gradient(circle at 38% 34%,#fff4de,#f3cf9c 72%);box-shadow:0 0 0 12px rgba(255,238,210,.16),0 0 0 28px rgba(255,238,210,.07)}
+.banner::after{inset:0;width:auto;height:auto;border-radius:0;background:radial-gradient(90% 60% at 12% 128%,rgba(255,255,255,.17) 55%,transparent 56%),radial-gradient(80% 55% at 92% 135%,rgba(255,255,255,.12) 55%,transparent 56%)}
+.banner h3{padding-right:84px}
+
+/* Postingan */
+.pimg{width:calc(100% - 24px);margin:0 12px;border-radius:20px}
+.lb img{border-radius:20px}
+
+/* Profil */
+.idcard{position:relative;overflow:hidden;padding-top:52px}
+.idcard::before{content:"";position:absolute;left:0;right:0;top:0;height:86px;background:linear-gradient(140deg,var(--bn1),var(--bn2))}
+.idcard>*{position:relative}
+.avbig{border:4px solid var(--sf);box-shadow:var(--sh)}
+.lrow{gap:14px}
+.lrow .ic{box-sizing:content-box;padding:9px;border-radius:50%;background:var(--t0)}
+.lrow.out .ic{background:color-mix(in srgb,var(--dn) 14%,transparent)}
+
+/* Layar pembuka */
+#splash{background:radial-gradient(120% 60% at 50% 0%,var(--t0),var(--bg) 70%)}
+#splash img{border-radius:28px}
+.sp-t{font-family:var(--serif);font-size:22px;font-weight:600;letter-spacing:.2px}
+.tkw{padding-bottom:16px;background:linear-gradient(var(--bg) 70%,transparent)}

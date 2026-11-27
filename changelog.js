@@ -5,6 +5,33 @@
 // =====================================================================
 window.NAWA_CHANGELOG = [
   {
+    v: '1.4', t: '27 November 2026',
+    add: [
+      'Header hijau sage dengan sudut bawah membulat (posisi ikon tidak berubah)',
+      'Tab berbentuk pil segmented di Pustaka, Komunitas, dan Dukung',
+      'Banner agenda dengan ilustrasi matahari dan perbukitan',
+      'Kartu profil dengan sampul gradasi dan ikon menu berlatar bulat',
+      'Ikon aplikasi dan layar pembuka baru bernuansa pastel'
+    ],
+    fix: [
+      'Foto postingan kini membulat dengan jarak tepi yang rapi',
+      'Warna header mode gelap disetel ulang agar tidak menyilaukan'
+    ]
+  },
+  {
+    v: '1.3', t: '27 November 2026',
+    add: [
+      'Tampilan baru bernuansa pastel (sage, ivory, sand) di mode terang dan gelap',
+      'Menu bawah bergaya dock melayang dengan penanda geser yang halus',
+      'Kabar berjalan kini berbentuk kapsul membulat',
+      'Banner agenda terdekat lebih mewah, dengan tombol Lihat Jadwal',
+      'Kartu "Sholawat Hari Ini" di Beranda'
+    ],
+    fix: [
+      'Seluruh sudut kartu, tombol, dan popup kini membulat'
+    ]
+  },
+  {
     v: '1.2', t: '27 November 2026',
     add: [
       'Tombol "Periksa Pembaruan" di Profil'

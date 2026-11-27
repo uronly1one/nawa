@@ -57,7 +57,7 @@ function applyTheme() {
   const t = localStorage.getItem('nawa_theme') || 'auto';
   if (t === 'auto') document.documentElement.removeAttribute('data-theme'); else document.documentElement.setAttribute('data-theme', t);
   const dark = t === 'dark' || (t === 'auto' && matchMedia('(prefers-color-scheme: dark)').matches);
-  $('meta[name=theme-color]').content = dark ? '#16241c' : '#0f7a4f';
+  $('meta[name=theme-color]').content = dark ? '#1b2c22' : '#4a6454';
 }
 applyTheme();
 matchMedia('(prefers-color-scheme: dark)').addEventListener?.('change', applyTheme);
@@ -120,8 +120,8 @@ function installHelp() {
 function infoVersi() {
   modal(`<h3>Info Aplikasi</h3><div class="cl">${CHANGELOG.map(c => `
     <div class="v"><b>Ver. ${esc(c.v)}</b><small>${esc(c.t)}</small></div>
-    <h4>Ditambahkan</h4><ul>${c.add.map(x => `<li>${esc(x)}</li>`).join('')}</ul>
-    <h4>Diperbaiki</h4><ul>${c.fix.map(x => `<li>${esc(x)}</li>`).join('')}</ul>`).join('')}</div>`);
+    ${c.add?.length ? `<h4>Ditambahkan</h4><ul>${c.add.map(x => `<li>${esc(x)}</li>`).join('')}</ul>` : ''}
+    ${c.fix?.length ? `<h4>Diperbaiki</h4><ul>${c.fix.map(x => `<li>${esc(x)}</li>`).join('')}</ul>` : ''}`).join('')}</div>`);
 }
 
 /* =====================================================================
@@ -243,7 +243,7 @@ function shell() {
       <button class="ib av" id="b-prof" aria-label="Profil">${avatarHtml()}</button>
     </header>
     <main id="main"></main>
-    <nav class="bot">${NAV.map(([r, l, i]) => `<button data-r="${r}">${ic(i, 23)}<span>${l}</span></button>`).join('')}</nav>`;
+    <nav class="bot"><i class="ind"></i>${NAV.map(([r, l, i]) => `<button data-r="${r}">${ic(i, 23)}<span>${l}</span></button>`).join('')}</nav>`;
   $('#b-info').onclick = infoVersi;
   $('#b-prof').onclick = () => go('profil');
   $('.bot').onclick = e => { const b = e.target.closest('button'); if (b && b.dataset.r !== S.route) go(b.dataset.r); };
@@ -260,6 +260,8 @@ function go(r, arg, still, fromPop) {
   S.route = r; S.arg = arg ?? DEF[r] ?? null;
   if (!still && !fromPop) { const stt = { r, a: S.arg }; if (r !== was) history.pushState(stt, ''); else history.replaceState(stt, ''); }
   $$('.bot button').forEach(b => b.classList.toggle('on', b.dataset.r === r));
+  const ix = NAV.findIndex(n => n[0] === r), ind = $('.ind');
+  if (ind) { ind.style.opacity = ix < 0 ? 0 : 1; ind.style.transform = `translateX(${Math.max(ix, 0) * 100}%)`; }
   const v = document.createElement('div');
   v.className = 'view' + (still ? ' still' : '');
   v.style.setProperty('--dx', (ORDER.indexOf(r) >= prev ? 14 : -14) + 'px');
@@ -378,12 +380,13 @@ V.beranda = el => {
   const name = S.admin ? 'Admin' : first(S.profile?.nama);
   const qa = [['Jadwal', 'calendar', 'go:jadwal'], ['Teks Sholawat', 'book', 'go:pustaka:teks'], ['Audio', 'music', 'go:pustaka:audio'],
               ['Galeri', 'image', 'go:komunitas:galeri'], ['Donasi', 'heart', 'go:dukung:donasi'], ['Usulan', 'users', 'go:komunitas:usulan']];
-  el.innerHTML = `<div class="ticker"><div class="tk-ic">📢</div><div class="tk-win st" id="tk">Memuat kabar…</div></div>
+  el.innerHTML = `<div class="tkw"><div class="ticker"><div class="tk-ic">📢</div><div class="tk-win st" id="tk">Memuat kabar…</div></div></div>
     <div class="pad stg">
-      <p class="hi">Assalamu'alaikum, <b>${esc(name)}</b></p>
-      <div class="banner" id="bn"><div class="lbl">Agenda Terdekat</div><h3>Memuat…</h3></div>
+      <div class="greet"><small>Assalamu'alaikum,</small><h2>${esc(name)}</h2><small class="tg">Bersholawat bersama, hati jadi tenang</small></div>
+      <div class="banner" id="bn"><span class="chip">Agenda Terdekat</span><h3>Memuat…</h3></div>
       <h2 class="sec">Akses Cepat</h2>
-      <div class="grid">${qa.map(([l, i, a]) => `<button class="qa" data-a="${a}"><i>${ic(i, 22)}</i>${l}</button>`).join('')}</div>
+      <div class="grid">${qa.map(([l, i, a], n) => `<button class="qa" data-a="${a}"><i class="t${n % 3}">${ic(i, 22)}</i>${l}</button>`).join('')}</div>
+      ${dzikirCard()}
       <div class="sec-row"><h2 class="sec">Kabar Jama'ah</h2>${S.admin ? `<button class="mini" data-a="post">${ic('plus', 14)} Postingan</button>` : ''}</div>
       <div class="feed" id="feed">${FSK}</div>
     </div>`;
@@ -402,8 +405,8 @@ V.beranda = el => {
     const today = new Date().toISOString().slice(0, 10);
     const next = rows.filter(r => r.tanggal && r.tanggal >= today).sort((a, b) => a.tanggal.localeCompare(b.tanggal))[0] || rows.find(r => r.jenis === 'rutin') || rows[0];
     bn.innerHTML = next
-      ? `<div class="lbl">Agenda Terdekat</div><h3>${esc(next.judul)}</h3><small>${esc(next.tanggal ? fmtDate(next.tanggal) : next.hari || '')}${next.waktu ? ' · ' + esc(next.waktu) : ''}</small>${next.lokasi ? `<small>${ic('pin', 13)} ${esc(next.lokasi)}</small>` : ''}`
-      : '<div class="lbl">Agenda Terdekat</div><h3>Belum ada agenda</h3>';
+      ? `<span class="chip">Agenda Terdekat</span><h3>${esc(next.judul)}</h3><div class="meta"><span>${ic('calendar', 14)} ${esc(next.tanggal ? fmtDate(next.tanggal) : next.hari || '')}${next.waktu ? ' · ' + esc(next.waktu) : ''}</span>${next.lokasi ? `<span>${ic('pin', 14)} ${esc(next.lokasi)}</span>` : ''}</div><button class="bpill" data-a="go:jadwal">Lihat Jadwal →</button>`
+      : '<span class="chip">Agenda Terdekat</span><h3>Belum ada agenda</h3>';
   });
 };
 
@@ -514,6 +517,17 @@ V.profil = el => {
     if (error) return toast(msg(error));
     S.profile.alamat = alamat; toast('Alamat tersimpan');
   };
+};
+
+/* ---------- Sholawat Hari Ini ---------- */
+const DZ = [
+  ['اللَّهُمَّ صَلِّ عَلَى سَيِّدِنَا مُحَمَّدٍ وَعَلَى آلِ سَيِّدِنَا مُحَمَّدٍ', 'Ya Allah, limpahkanlah rahmat kepada junjungan kami Nabi Muhammad dan keluarganya.'],
+  ['صَلَّى اللهُ عَلَيْهِ وَسَلَّمَ', 'Semoga rahmat dan keselamatan Allah tercurah kepada beliau.'],
+  ['حَسْبُنَا اللهُ وَنِعْمَ الْوَكِيلُ', 'Cukuplah Allah bagi kami, dan Dia sebaik-baik pelindung.']
+];
+const dzikirCard = () => {
+  const d = DZ[Math.floor(Date.now() / 864e5) % DZ.length];
+  return `<div class="dz"><span class="chip2">Sholawat Hari Ini</span><p class="arab" dir="rtl" lang="ar">${d[0]}</p><small>${d[1]}</small></div>`;
 };
 
 /* ---------- Postingan Beranda ---------- */
