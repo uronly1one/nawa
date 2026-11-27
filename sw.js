@@ -1,5 +1,5 @@
-const CACHE = 'nawa-v1.0';
-const SHELL = ['./', 'index.html', 'style.css', 'app.js', 'config.js', 'manifest.webmanifest', 'icon-192.png', 'icon-512.png'];
+const CACHE = 'nawa-v1.1';
+const SHELL = ['./', 'index.html', 'style.css', 'app.js', 'config.js', 'changelog.js', 'manifest.webmanifest', 'icon-192.png', 'icon-512.png'];
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL)).then(() => self.skipWaiting()));

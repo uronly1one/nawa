@@ -176,3 +176,37 @@ audio{width:100%;margin-top:10px}
 .lrow.out,.lrow.out .ic{color:var(--dn)}
 .toast{position:fixed;left:50%;bottom:calc(var(--nh) + var(--sab) + 18px);transform:translate3d(-50%,14px,0);max-width:86vw;padding:10px 16px;border-radius:12px;background:var(--tx);color:var(--bg);font-size:13.5px;font-weight:600;opacity:0;z-index:80;transition:opacity .25s,transform .3s var(--ease);pointer-events:none;text-align:center}
 .toast.on{opacity:1;transform:translate3d(-50%,0,0)}
+
+/* ===== v1.1 ===== */
+:root{--lk:#d63a6f}
+@media (prefers-color-scheme:dark){:root:not([data-theme=light]){--lk:#ff82ab}}
+:root[data-theme=dark]{--lk:#ff82ab}
+.sec-row{display:flex;align-items:center;justify-content:space-between;margin-top:6px}
+.sec-row .sec{margin:0}
+.mini{display:inline-flex;align-items:center;gap:4px;padding:6px 12px;border-radius:99px;background:var(--pr);color:var(--on);font-size:12.5px;font-weight:700;transition:transform .15s var(--ease)}
+.mini:active{transform:scale(.94)}
+.feed{display:grid;gap:12px}
+.post{background:var(--sf);border:1px solid var(--bd);border-radius:18px;overflow:hidden;box-shadow:var(--sh)}
+.ph{display:flex;align-items:center;gap:10px;padding:12px 12px 10px}
+.ph>img{width:38px;height:38px;border-radius:50%;flex:none}
+.ph>div:nth-child(2){flex:1;min-width:0}
+.ph b{font-size:14px}
+.pimg{display:block;width:100%;max-height:480px;object-fit:cover;background:var(--sf2)}
+.pt{padding:12px 14px 4px;white-space:pre-wrap;word-break:break-word}
+.pa{display:flex;gap:6px;padding:6px 8px 8px}
+.pa button{display:flex;align-items:center;gap:6px;padding:8px 10px;border-radius:12px;color:var(--mu);font-weight:600;transition:transform .15s var(--ease)}
+.pa button:active{transform:scale(.92)}
+.pa .liked{color:var(--lk)}
+.pa .liked svg{fill:currentColor;animation:pop .32s var(--ease)}
+@keyframes pop{40%{transform:scale(1.35)}}
+.kr{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--bd)}
+.kr small{flex:1;word-break:break-word}
+.cl2{display:grid;gap:12px;margin-bottom:12px;max-height:44vh;overflow-y:auto}
+.cm{display:flex;gap:8px;align-items:flex-start}
+.cm>div:first-child{flex:1;min-width:0}
+.cm p{word-break:break-word}
+.cf{display:flex;gap:8px;align-items:center}
+.cf input{flex:1;min-width:0;padding:11px 14px;font:inherit;font-size:16px;color:var(--tx);background:var(--bg);border:1.5px solid var(--bd);border-radius:12px;outline:0}
+.cf input:focus{border-color:var(--pr)}
+.cf .btn{height:44px}
+.pv img{max-width:100%;max-height:220px;border-radius:12px}

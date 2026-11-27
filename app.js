@@ -7,14 +7,7 @@ const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
-/* ---------- Riwayat versi (tambah entri baru di paling atas) ---------- */
-const CHANGELOG = [{
-  v: '1.0', t: '27 November 2026',
-  add: ['Registrasi & login dengan No. WhatsApp + PIN', 'Lupa PIN', 'Keanggotaan (foto, nama, alamat)',
-        'Beranda: agenda terdekat, Kabar berjalan, Akses Cepat', 'Jadwal & Lokasi majelis', 'Pustaka sholawat, ebook, audio, arsip',
-        'Komunitas: kelompok, usulan, galeri', 'Dukungan: program sosial, donasi, laporan', 'Mode terang / gelap', 'Cara install aplikasi', 'Sesi admin'],
-  fix: ['Layar login tidak lagi muncul sekilas saat membuka aplikasi yang sudah masuk', 'Teks tidak bisa terblok tanpa sengaja']
-}];
+const CHANGELOG = window.NAWA_CHANGELOG || [];
 
 /* ---------- Ikon ---------- */
 const I = {
@@ -38,6 +31,7 @@ const I = {
   logout: '<path d="M9 4H5v16h4M16 8l4 4-4 4M20 12H9"/>',
   camera: '<path d="M4 8h3l2-3h6l2 3h3v12H4z"/><circle cx="12" cy="13" r="3.5"/>',
   copy: '<rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3"/>',
+  comment: '<path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z"/>',
   link: '<path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/>'
 };
 const ic = (n, s = 22) => `<svg class="ic" width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${I[n] || ''}</svg>`;
@@ -51,7 +45,7 @@ document.addEventListener('copy', e => { if (!inField(e.target)) e.preventDefaul
 
 /* ---------- State ---------- */
 const S = { user: null, profile: null, admin: false, route: 'beranda', arg: null };
-const cache = {}; const ROWS = {};
+const cache = {}; const ROWS = {}; const modals = [];
 const DEF = { pustaka: 'teks', komunitas: 'kelompok', dukung: 'program' };
 const ORDER = ['beranda', 'jadwal', 'pustaka', 'komunitas', 'dukung', 'profil'];
 const NAV = [['beranda', 'Beranda', 'home'], ['jadwal', 'Jadwal', 'calendar'], ['pustaka', 'Pustaka', 'book'], ['komunitas', 'Komunitas', 'users'], ['dukung', 'Dukung', 'heart']];
@@ -79,7 +73,9 @@ function modal(html, { close = true } = {}) {
   o.innerHTML = `<div class="md" role="dialog">${close ? `<button class="x" aria-label="Tutup">${ic('x', 20)}</button>` : ''}${html}</div>`;
   document.body.appendChild(o);
   requestAnimationFrame(() => requestAnimationFrame(() => o.classList.add('on')));
-  const end = () => { o.classList.remove('on'); setTimeout(() => o.remove(), 240); };
+  const entry = { close: () => end(), dismissable: close };
+  modals.push(entry);
+  const end = () => { const i = modals.indexOf(entry); if (i >= 0) modals.splice(i, 1); o.classList.remove('on'); setTimeout(() => o.remove(), 240); };
   if (close) { o.addEventListener('click', e => { if (e.target === o) end(); }); $('.x', o).onclick = end; }
   return { el: o, close: end };
 }
@@ -108,7 +104,8 @@ const hideSplash = () => { const s = $('#splash'); if (s) { s.classList.add('off
 /* ---------- Install ---------- */
 let dip = null;
 addEventListener('beforeinstallprompt', e => { e.preventDefault(); dip = e; });
-const standalone = () => matchMedia('(display-mode: standalone)').matches || navigator.standalone;
+addEventListener('appinstalled', () => { dip = null; $$('#inst,[data-a="install"]').forEach(x => x.remove()); });
+const standalone = () => matchMedia('(display-mode: standalone)').matches || matchMedia('(display-mode: minimal-ui)').matches || matchMedia('(display-mode: fullscreen)').matches || navigator.standalone === true;
 function installHelp() {
   const m = modal(`<h3>Cara Install Aplikasi</h3>${standalone() ? '<p>Aplikasi sudah terpasang di perangkat ini.</p>' : `
     ${dip ? '<button class="btn" id="do-inst">Install Sekarang</button>' : ''}
@@ -144,11 +141,11 @@ function authView(mode = 'login') {
       <button class="btn">${reg ? 'Daftar' : 'Masuk'}</button>
     </form>
     <div class="links">${reg ? '<span></span><button id="sw">Sudah punya akun? Masuk</button>' : '<button id="lupa">Lupa PIN?</button><button id="sw">Daftar anggota baru</button>'}</div>
-    <button class="corner l" id="inst" aria-label="Cara install">${ic('download', 20)}</button>
+    ${standalone() ? '' : `<button class="corner l" id="inst" aria-label="Cara install">${ic('download', 20)}</button>`}
     <button class="corner r" id="adm" aria-label="Login admin">${ic('shield', 20)}</button>
   </div>`;
   $('#sw').onclick = () => authView(reg ? 'login' : 'register');
-  $('#inst').onclick = installHelp;
+  if ($('#inst')) $('#inst').onclick = installHelp;
   $('#adm').onclick = adminLogin;
   if (!reg) $('#lupa').onclick = lupaPin;
   $('#fa').onsubmit = async e => {
@@ -251,13 +248,16 @@ function shell() {
   $('.bot').onclick = e => { const b = e.target.closest('button'); if (b && b.dataset.r !== S.route) go(b.dataset.r); };
   $('#main').onclick = onAction;
   S.route = 'beranda';
-  go('beranda');
+  history.replaceState({ r: 'beranda', a: null }, '');
+  go('beranda', undefined, false, true);
 }
 
-function go(r, arg, still) {
+function go(r, arg, still, fromPop) {
   const main = $('#main'); if (!main) return;
   const prev = ORDER.indexOf(S.route), st = main.scrollTop;
+  const was = S.route;
   S.route = r; S.arg = arg ?? DEF[r] ?? null;
+  if (!still && !fromPop) { const stt = { r, a: S.arg }; if (r !== was) history.pushState(stt, ''); else history.replaceState(stt, ''); }
   $$('.bot button').forEach(b => b.classList.toggle('on', b.dataset.r === r));
   const v = document.createElement('div');
   v.className = 'view' + (still ? ' still' : '');
@@ -356,11 +356,15 @@ function onAction(e) {
   else if (a === 'open') openItem(ROWS[x + ':' + y]);
   else if (a === 'img') openImg(ROWS['galeri:' + x]);
   else if (a === 'copy') { navigator.clipboard?.writeText(t.dataset.v || '').then(() => toast('Nomor disalin'), () => toast('Gagal menyalin')); }
+  else if (a === 'like') toggleLike(x);
+  else if (a === 'coms') openComments(x);
+  else if (a === 'post') composePost();
+  else if (a === 'delpost') confirmBox('Hapus postingan ini?', () => deletePost(x));
   else if (a === 'install') installHelp();
   else if (a === 'info') infoVersi();
   else if (a === 'photo') changePhoto();
   else if (a === 'theme') { localStorage.setItem('nawa_theme', x); applyTheme(); refresh(); }
-  else if (a === 'logout') confirmBox('Keluar dari aplikasi?', async () => { S.user = null; await sb.auth.signOut(); Object.keys(cache).forEach(k => delete cache[k]); authView('login'); }, 'Keluar');
+  else if (a === 'logout') confirmBox('Keluar dari aplikasi?', async () => { S.user = null; await sb.auth.signOut(); Object.keys(cache).forEach(k => delete cache[k]); FEED = null; authView('login'); }, 'Keluar');
 }
 
 /* =====================================================================
@@ -378,8 +382,10 @@ V.beranda = el => {
       <div class="banner" id="bn"><div class="lbl">Agenda Terdekat</div><h3>Memuat…</h3></div>
       <h2 class="sec">Akses Cepat</h2>
       <div class="grid">${qa.map(([l, i, a]) => `<button class="qa" data-a="${a}"><i>${ic(i, 22)}</i>${l}</button>`).join('')}</div>
-      ${S.admin ? `<h2 class="sec">Kelola Kabar Berjalan</h2><div id="kb" class="pad" style="padding:0"></div><button class="btn" data-a="add:pengumuman">${'+ Tambah Kabar'}</button>` : ''}
+      <div class="sec-row"><h2 class="sec">Kabar Jama'ah</h2>${S.admin ? `<button class="mini" data-a="post">${ic('plus', 14)} Postingan</button>` : ''}</div>
+      <div class="feed" id="feed">${FSK}</div>
     </div>`;
+  loadFeed();
   load('pengumuman', (rows, err) => {
     const tk = $('#tk', el); if (!tk) return;
     if (!err && rows.length) {
@@ -388,8 +394,6 @@ V.beranda = el => {
       const half = `<span>${esc((txt + '  ✦  ').repeat(rep))}</span>`;
       tk.className = 'tk-win'; tk.innerHTML = `<div class="track" style="--d:${Math.max(18, txt.length * rep * 0.2)}s">${half}${half}</div>`;
     } else { tk.className = 'tk-win st'; tk.textContent = 'Belum ada pengumuman'; }
-    const kb = $('#kb', el);
-    if (kb && rows) { rows.forEach(r => ROWS['pengumuman:' + r.id] = r); kb.innerHTML = rows.map(r => `<div class="card row"><div class="bd"><small>${esc(r.isi)}</small></div>${admBtns('pengumuman', r)}</div>`).join('') || '<div class="empty">Belum ada kabar</div>'; }
   });
   load('agenda', rows => {
     const bn = $('#bn', el); if (!bn) return;
@@ -484,13 +488,19 @@ V.profil = el => {
       <label class="fld"><span>No. WhatsApp</span><input value="${esc(showWa(p.wa))}" disabled></label>
       <label class="fld"><span>Alamat</span><textarea name="alamat" rows="3" required>${esc(p.alamat)}</textarea></label>
       <button class="btn">Simpan Alamat</button></form></div>`}
+    ${S.admin ? `<h2 class="sec">Kelola Kabar Berjalan</h2><div class="card"><div id="kb"></div><button class="btn" style="margin-top:12px" data-a="add:pengumuman">+ Tambah Kabar</button></div>` : ''}
     <h2 class="sec">Tampilan</h2>
     <div class="card" style="padding:4px 0 10px">${seg([['auto', 'Otomatis'], ['light', 'Terang'], ['dark', 'Gelap']], th).replace(/data-a="arg:/g, 'data-a="theme:')}</div>
     <div class="card" style="padding:4px 14px">
-      <button class="lrow" data-a="install">${ic('download')}Cara Install Aplikasi</button>
+      ${standalone() ? '' : `<button class="lrow" data-a="install">${ic('download')}Cara Install Aplikasi</button>`}
       <button class="lrow" data-a="info">${ic('info')}Info Versi · Ver. ${esc(C.VERSION)}</button>
       <button class="lrow out" data-a="logout">${ic('logout')}Keluar</button></div>
   </div>`;
+  if (S.admin) load('pengumuman', rows => {
+    const kb = $('#kb', el); if (!kb || !rows) return;
+    rows.forEach(r => ROWS['pengumuman:' + r.id] = r);
+    kb.innerHTML = rows.map(r => `<div class="kr"><small>${esc(r.isi)}</small>${admBtns('pengumuman', r)}</div>`).join('') || '<div class="empty" style="padding:10px">Belum ada kabar</div>';
+  });
   const f = $('#fp', el);
   if (f) f.onsubmit = async e => {
     e.preventDefault(); const b = $('.btn', f); b.disabled = true;
@@ -502,6 +512,144 @@ V.profil = el => {
     S.profile.alamat = alamat; toast('Alamat tersimpan');
   };
 };
+
+/* ---------- Postingan Beranda ---------- */
+let FEED = null;
+const FSK = '<div class="sk" style="height:220px"></div>';
+const busy = new Set();
+const ago = t => {
+  const s = (Date.now() - new Date(t)) / 1000;
+  if (s < 60) return 'baru saja'; if (s < 3600) return Math.floor(s / 60) + ' mnt lalu';
+  if (s < 86400) return Math.floor(s / 3600) + ' jam lalu'; if (s < 604800) return Math.floor(s / 86400) + ' hari lalu';
+  return new Date(t).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
+};
+function postHtml(p) {
+  return `<article class="post" data-id="${p.id}">
+    <div class="ph"><img src="icon-192.png" alt=""><div><b>Tambak Bersholawat</b><small>${ago(p.created_at)}</small></div>${S.admin ? `<div class="adm"><button class="dl" data-a="delpost:${p.id}" aria-label="Hapus">${ic('trash', 18)}</button></div>` : ''}</div>
+    ${p.gambar_url ? `<img class="pimg" loading="lazy" src="${esc(p.gambar_url)}" alt="">` : ''}
+    ${p.isi ? `<p class="pt">${esc(p.isi)}</p>` : ''}
+    <div class="pa"><button data-a="like:${p.id}" class="${p.liked ? 'liked' : ''}" aria-label="Suka">${ic('heart', 22)}<span>${p.likes}</span></button><button data-a="coms:${p.id}" aria-label="Komentar">${ic('comment', 22)}<span>${p.coms}</span></button></div>
+  </article>`;
+}
+function renderFeed() {
+  const box = $('#feed'); if (!box || !FEED) return;
+  box.innerHTML = FEED.length ? FEED.map(postHtml).join('') : '<div class="empty">Belum ada postingan</div>';
+}
+function paintPost(p) {
+  const a = $(`.post[data-id="${p.id}"]`); if (!a) return;
+  const [lb, cb] = $$('.pa button', a);
+  lb.classList.toggle('liked', p.liked); $('span', lb).textContent = p.likes; $('span', cb).textContent = p.coms;
+}
+async function fetchFeed() {
+  const { data: posts, error } = await sb.from('posts').select('*').order('created_at', { ascending: false }).limit(20);
+  if (error) throw error;
+  const ids = posts.map(p => p.id); let L = [], K = [];
+  if (ids.length) {
+    const [a, b] = await Promise.all([sb.from('post_likes').select('post_id,user_id').in('post_id', ids), sb.from('post_comments').select('post_id').in('post_id', ids)]);
+    L = a.data || []; K = b.data || [];
+  }
+  return posts.map(p => ({ ...p, likes: L.filter(x => x.post_id === p.id).length, liked: L.some(x => x.post_id === p.id && x.user_id === S.user.id), coms: K.filter(x => x.post_id === p.id).length }));
+}
+function loadFeed() {
+  if (FEED) renderFeed();
+  fetchFeed().then(f => { if (!FEED || JSON.stringify(FEED) !== JSON.stringify(f)) { FEED = f; renderFeed(); } })
+    .catch(err => { if (!FEED) { const b = $('#feed'); if (b) b.innerHTML = `<div class="empty">Gagal memuat postingan.<br>${esc(msg(err))}</div>`; } });
+}
+async function toggleLike(id) {
+  const p = FEED?.find(x => x.id === id); if (!p || busy.has(id)) return;
+  busy.add(id); const was = p.liked;
+  p.liked = !was; p.likes += was ? -1 : 1; paintPost(p);
+  const { error } = was ? await sb.from('post_likes').delete().eq('post_id', id).eq('user_id', S.user.id) : await sb.from('post_likes').insert({ post_id: id, user_id: S.user.id });
+  busy.delete(id);
+  if (error) { p.liked = was; p.likes += was ? 1 : -1; paintPost(p); toast(msg(error)); }
+}
+async function deletePost(id) {
+  const p = FEED?.find(x => x.id === id);
+  const { error } = await sb.from('posts').delete().eq('id', id);
+  if (error) return toast(msg(error));
+  if (p?.gambar_url) { const n = p.gambar_url.split('/posts/')[1]; if (n) sb.storage.from('posts').remove([decodeURIComponent(n.split('?')[0])]); }
+  FEED = FEED.filter(x => x.id !== id); renderFeed(); toast('Postingan dihapus');
+}
+function pickImage() {
+  return new Promise(res => { const i = document.createElement('input'); i.type = 'file'; i.accept = 'image/*'; i.onchange = () => res(i.files[0] || null); i.click(); });
+}
+// Kecilkan gambar sampai <= 1 MB (maks. sisi 1280px, JPEG)
+async function shrink(file) {
+  const LIMIT = 1000000;
+  try {
+    const bm = await createImageBitmap(file), k = Math.min(1, 1280 / Math.max(bm.width, bm.height));
+    const w = Math.round(bm.width * k), h = Math.round(bm.height * k);
+    for (let sc = 1; sc >= .4; sc -= .15) {
+      const c = document.createElement('canvas'); c.width = Math.round(w * sc); c.height = Math.round(h * sc);
+      c.getContext('2d').drawImage(bm, 0, 0, c.width, c.height);
+      for (let q = .85; q >= .5; q -= .1) {
+        const b = await new Promise(r => c.toBlob(r, 'image/jpeg', q));
+        if (b && b.size <= LIMIT) return b;
+      }
+    }
+  } catch { }
+  return null;
+}
+function composePost() {
+  let blob = null;
+  const m = modal(`<h3>Buat Postingan</h3><form>
+    <label class="fld"><span>Tulisan</span><textarea name="isi" rows="4" maxlength="2000"></textarea></label>
+    <div class="gp"><div class="pv" id="pv"></div><button type="button" class="btn ghost" id="ppick" style="width:auto;padding:10px 20px">Pilih Gambar (maks. 1 MB)</button></div>
+    <button class="btn">Posting</button></form>`);
+  $('#ppick', m.el).onclick = async () => {
+    const f = await pickImage(); if (!f) return;
+    toast('Memproses gambar…');
+    const b = await shrink(f);
+    if (!b) return toast('Gambar tidak bisa dikecilkan ke 1 MB');
+    blob = b; $('#pv', m.el).innerHTML = `<img src="${URL.createObjectURL(b)}" alt="">`;
+    $('#ppick', m.el).textContent = `Ganti Gambar (${Math.round(b.size / 1024)} KB)`;
+  };
+  $('form', m.el).onsubmit = async e => {
+    e.preventDefault();
+    const isi = new FormData(e.target).get('isi').trim();
+    if (!isi && !blob) return toast('Tulis sesuatu atau pilih gambar');
+    const btn = $('form>.btn', m.el); btn.disabled = true; btn.textContent = 'Memposting…';
+    try {
+      let url = null;
+      if (blob) {
+        const path = Date.now() + '.jpg';
+        const { error } = await sb.storage.from('posts').upload(path, blob, { contentType: 'image/jpeg' });
+        if (error) throw error;
+        url = sb.storage.from('posts').getPublicUrl(path).data.publicUrl;
+      }
+      const { error } = await sb.from('posts').insert({ isi: isi || null, gambar_url: url });
+      if (error) throw error;
+      m.close(); toast('Terposting');
+      fetchFeed().then(f => { FEED = f; renderFeed(); });
+    } catch (err) { toast(msg(err)); btn.disabled = false; btn.textContent = 'Posting'; }
+  };
+}
+async function openComments(id) {
+  const m = modal(`<h3>Komentar</h3><div class="cl2" id="cl"><small>Memuat…</small></div>
+    <form class="cf" id="cf"><input name="t" maxlength="500" placeholder="Tulis komentar…" autocomplete="off" required><button class="btn" style="width:auto;padding:0 18px">Kirim</button></form>`);
+  const draw = async () => {
+    const { data, error } = await sb.from('post_comments').select('*').eq('post_id', id).order('created_at', { ascending: true });
+    const cl = $('#cl', m.el); if (!cl) return;
+    if (error) { cl.innerHTML = `<small>${esc(msg(error))}</small>`; return; }
+    cl.innerHTML = data.length ? data.map(c => `<div class="cm"><div><b>${esc(c.nama)}</b> <small style="display:inline">· ${ago(c.created_at)}</small><p>${esc(c.isi)}</p></div>${S.admin || c.user_id === S.user.id ? `<div class="adm"><button class="dl" data-cd="${c.id}" aria-label="Hapus">${ic('trash', 16)}</button></div>` : ''}</div>`).join('') : '<small>Belum ada komentar. Jadi yang pertama!</small>';
+    const p = FEED?.find(x => x.id === id); if (p) { p.coms = data.length; paintPost(p); }
+    cl.scrollTop = cl.scrollHeight;
+  };
+  m.el.addEventListener('click', async e => {
+    const b = e.target.closest('[data-cd]'); if (!b) return;
+    const { error } = await sb.from('post_comments').delete().eq('id', b.dataset.cd);
+    if (error) return toast(msg(error)); draw();
+  });
+  $('#cf', m.el).onsubmit = async e => {
+    e.preventDefault(); const inp = e.target.t, t = inp.value.trim(); if (!t) return;
+    inp.disabled = true;
+    const { error } = await sb.from('post_comments').insert({ post_id: id, user_id: S.user.id, isi: t });
+    inp.disabled = false;
+    if (error) return toast(msg(error));
+    inp.value = ''; draw();
+  };
+  draw();
+}
 
 /* ---------- Foto profil ---------- */
 function pickBlob() {
@@ -559,6 +707,11 @@ function gate() {
 }
 
 /* ---------- Mulai ---------- */
+addEventListener('popstate', e => {
+  if (modals.length) { const m = modals[modals.length - 1]; if (m.dismissable) m.close(); history.pushState({ r: S.route, a: S.arg }, ''); return; }
+  if (!S.user || !$('#main')) return;
+  const st = e.state; if (st && st.r) go(st.r, st.a ?? undefined, false, true);
+});
 sb.auth.onAuthStateChange(ev => { if (ev === 'SIGNED_OUT' && S.user) { S.user = null; authView('login'); } });
 if ('serviceWorker' in navigator) addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
 enter().catch(() => { authView('login'); hideSplash(); });
