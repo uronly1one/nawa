@@ -118,10 +118,11 @@ function installHelp() {
   if (b) b.onclick = async () => { dip.prompt(); await dip.userChoice; dip = null; m.close(); };
 }
 function infoVersi() {
-  modal(`<h3>Info Aplikasi</h3><div class="cl">${CHANGELOG.map(c => `
-    <div class="v"><b>Ver. ${esc(c.v)}</b><small>${esc(c.t)}</small></div>
+  const c = CHANGELOG[0]; if (!c) return;
+  modal(`<h3>Info Aplikasi</h3><div class="cl">
+    <div class="v"><b>Ver. ${esc(c.v)}</b></div>
     ${c.add?.length ? `<h4>Ditambahkan</h4><ul>${c.add.map(x => `<li>${esc(x)}</li>`).join('')}</ul>` : ''}
-    ${c.fix?.length ? `<h4>Diperbaiki</h4><ul>${c.fix.map(x => `<li>${esc(x)}</li>`).join('')}</ul>` : ''}`).join('')}</div>`);
+    ${c.fix?.length ? `<h4>Diperbaiki</h4><ul>${c.fix.map(x => `<li>${esc(x)}</li>`).join('')}</ul>` : ''}</div>`);
 }
 
 /* =====================================================================

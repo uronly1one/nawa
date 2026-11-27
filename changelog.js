@@ -1,9 +1,17 @@
 // =====================================================================
 // INFO VERSI — file ini yang tampil di popup tanda seru (!) di aplikasi.
 // Setiap revisi: tambahkan entri BARU di paling atas (jangan hapus yang lama).
+// Popup (!) hanya menampilkan entri paling atas.
 // Lalu naikkan VERSION di config.js dan nama CACHE di sw.js.
 // =====================================================================
 window.NAWA_CHANGELOG = [
+  {
+    v: '1.5', t: '27 November 2026',
+    add: [],
+    fix: [
+      'Info versi kini hanya menampilkan pembaruan terbaru, tanpa riwayat lama dan tanpa tanggal'
+    ]
+  },
   {
     v: '1.4', t: '27 November 2026',
     add: [
