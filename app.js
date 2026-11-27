@@ -167,7 +167,7 @@ function authView(mode = 'login') {
   app.innerHTML = `<div class="auth view">
     <img class="logo" src="icon-192.png" alt="">
     <h1>Tambak Bersholawat</h1>
-    <p class="sub">${reg ? 'Daftar sebagai anggota jama\'ah' : 'Masuk untuk melanjutkan'}</p>
+    <p class="sub">${reg ? 'Daftar untuk memakai semua fitur' : 'Masuk untuk melanjutkan'}</p>
     <form id="fa" autocomplete="off">
       ${reg ? `<label class="fld"><span>Nama Sesuai KTP</span><input name="nama" required autocomplete="name"></label>` : ''}
       <label class="fld"><span>No. WhatsApp</span><input name="wa" inputmode="tel" required autocomplete="tel" placeholder="08xxxxxxxxxx"></label>
@@ -175,7 +175,7 @@ function authView(mode = 'login') {
       <label class="fld"><span>${reg ? 'Buat PIN (4 angka)' : 'PIN'}</span><input class="pin" name="pin" type="password" inputmode="numeric" maxlength="4" pattern="\\d{4}" required placeholder="••••" autocomplete="off"></label>
       <button class="btn">${reg ? 'Daftar' : 'Masuk'}</button>
     </form>
-    <div class="links">${reg ? '<span></span><button id="sw">Sudah punya akun? Masuk</button>' : '<button id="lupa">Lupa PIN?</button><button id="sw">Daftar anggota baru</button>'}</div>
+    <div class="links">${reg ? '<span></span><button id="sw">Sudah punya akun? Masuk</button>' : '<button id="lupa">Lupa PIN?</button><button id="sw">Belum punya akun? Daftar</button>'}</div>
     ${standalone() ? '' : `<button class="corner l" id="inst" aria-label="Cara install">${ic('download', 20)}</button>`}
     <button class="corner r" id="adm" aria-label="Login admin">${ic('shield', 20)}</button>
   </div>`;

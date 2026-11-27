@@ -6,6 +6,13 @@
 // =====================================================================
 window.NAWA_CHANGELOG = [
   {
+    v: '1.7', t: '27 November 2026',
+    add: [],
+    fix: [
+      'Tulisan di halaman login dan pendaftaran dibuat lebih singkat dan mudah dipahami'
+    ]
+  },
+  {
     v: '1.6', t: '27 November 2026',
     add: [
       'Popup Instal otomatis saat aplikasi dibuka lewat link di browser, dan hilang setelah terpasang',
