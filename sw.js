@@ -1,4 +1,4 @@
-const CACHE = 'nawa-v1.8';
+const CACHE = 'nawa-v1.9';
 const SHELL = ['./', 'index.html', 'style.css', 'app.js', 'config.js', 'changelog.js', 'manifest.webmanifest', 'icon-192.png', 'icon-512.png'];
 
 // Pasang: ambil file TERBARU langsung dari server (lewati cache browser), lalu aktif seketika

@@ -49,7 +49,7 @@ const S = { user: null, profile: null, admin: false, route: 'beranda', arg: null
 const cache = {}; const ROWS = {}; const modals = [];
 const DEF = { pustaka: 'teks', komunitas: 'user', dukung: 'program' };
 const ORDER = ['beranda', 'jadwal', 'pustaka', 'komunitas', 'dukung', 'profil'];
-const NAV = [['beranda', 'Beranda', 'home'], ['jadwal', 'Jadwal', 'calendar'], ['pustaka', 'Pustaka', 'book'], ['komunitas', 'Komunitas', 'users'], ['dukung', 'Dukung', 'heart']];
+const NAV = [['beranda', 'Beranda', 'home'], ['jadwal', 'Jadwal', 'calendar'], ['pustaka', 'Pustaka', 'book'], ['komunitas', 'Komunitas', 'users'], ['dukung', 'Support', 'heart']];
 const app = $('#app');
 
 /* ---------- Tema ---------- */
@@ -78,7 +78,7 @@ function modal(html, { close = true } = {}) {
   modals.push(entry);
   const end = () => { const i = modals.indexOf(entry); if (i >= 0) modals.splice(i, 1); o.classList.remove('on'); setTimeout(() => o.remove(), 240); };
   if (close) { o.addEventListener('click', e => { if (e.target === o) end(); }); $('.x', o).onclick = end; }
-  return { el: o, close: end };
+  return { el: o, close: end, entry };
 }
 function confirmBox(text, ok, label = 'Hapus') {
   const m = modal(`<h3>${esc(text)}</h3><button class="btn dng" id="cy">${label}</button><button class="btn ghost" id="cn">Batal</button>`);
@@ -125,7 +125,7 @@ function installSheet(kind) {
   if (standalone() || lsGet('nawa_installed') || ssGet('nawa_inst_later') || $('#isheet')) return;
   const prompt = kind === 'prompt' && dip;
   const e = document.createElement('div'); e.id = 'isheet'; e.className = 'isheet';
-  e.innerHTML = `<img src="icon-192.png" alt=""><div class="tx"><b>Pasang Aplikasi Tambak Bersholawat</b><small>${prompt ? 'Pasang di layar utama HP agar lebih mudah dibuka, seperti aplikasi biasa.' : 'Ketuk tombol di bawah untuk melihat cara memasangnya di layar utama HP.'}</small></div>
+  e.innerHTML = `<img src="icon-192.png" alt=""><div class="tx"><b>Pasang Aplikasi Nawa</b><small>${prompt ? 'Pasang di layar utama HP agar lebih mudah dibuka, seperti aplikasi biasa.' : 'Ketuk tombol di bawah untuk melihat cara memasangnya di layar utama HP.'}</small></div>
     <div class="acts"><button class="btn" id="is-go">${prompt ? 'Instal' : 'Lihat Caranya'}</button><button class="btn ghost" id="is-no">Nanti saja</button></div>`;
   document.body.appendChild(e);
   requestAnimationFrame(() => requestAnimationFrame(() => e.classList.add('on')));
@@ -161,13 +161,19 @@ function infoVersi() {
 /* =====================================================================
    AUTH
    ===================================================================== */
-function authView(mode = 'login') {
-  S.user = null; S.profile = null; S.admin = false;
-  const reg = mode === 'register';
-  app.innerHTML = `<div class="auth view">
-    <img class="logo" src="icon-192.png" alt="">
-    <h1>Tambak Bersholawat</h1>
-    <p class="sub">${reg ? 'Daftar untuk memakai semua fitur' : 'Masuk untuk melanjutkan'}</p>
+let PENDING = null, authRef = null;
+const LOCKED = ['pustaka', 'komunitas', 'dukung', 'profil'];
+function needLogin(target) { PENDING = target || null; authModal('login'); }
+function closeAuth() { if (authRef) { authRef.close(); authRef = null; } }
+function guestMode() { S.user = null; S.profile = null; S.admin = false; stopPresence(); shell(); }
+
+// Login / registrasi sebagai popup mini (muncul saat tamu membuka fitur yang dikunci)
+function authModal(mode = 'login') {
+  hideSheet();
+  if (!authRef || !modals.includes(authRef.entry)) authRef = modal('<div id="authbody"></div>');
+  const body = $('#authbody', authRef.el), reg = mode === 'register';
+  body.innerHTML = `<h3>${reg ? 'Registrasi' : 'Masuk'}</h3>
+    <p class="mu" style="margin-bottom:14px">${reg ? 'Daftar untuk memakai semua fitur' : 'Masuk untuk membuka fitur ini'}</p>
     <form id="fa" autocomplete="off">
       ${reg ? `<label class="fld"><span>Nama Sesuai KTP</span><input name="nama" required autocomplete="name"></label>` : ''}
       <label class="fld"><span>No. WhatsApp</span><input name="wa" inputmode="tel" required autocomplete="tel" placeholder="08xxxxxxxxxx"></label>
@@ -176,14 +182,12 @@ function authView(mode = 'login') {
       <button class="btn">${reg ? 'Daftar' : 'Masuk'}</button>
     </form>
     <div class="links">${reg ? '<span></span><button id="sw">Sudah punya akun? Masuk</button>' : '<button id="lupa">Lupa PIN?</button><button id="sw">Belum punya akun? Daftar</button>'}</div>
-    ${standalone() ? '' : `<button class="corner l" id="inst" aria-label="Cara install">${ic('download', 20)}</button>`}
-    <button class="corner r" id="adm" aria-label="Login admin">${ic('shield', 20)}</button>
-  </div>`;
-  $('#sw').onclick = () => authView(reg ? 'login' : 'register');
-  if ($('#inst')) $('#inst').onclick = installHelp;
-  $('#adm').onclick = adminLogin;
-  if (!reg) $('#lupa').onclick = lupaPin;
-  $('#fa').onsubmit = async e => {
+    <div class="mfoot">${standalone() ? '<span></span>' : `<button class="rb" id="inst" aria-label="Cara install">${ic('download', 20)}</button>`}<button class="rb" id="adm" aria-label="Login admin">${ic('shield', 20)}</button></div>`;
+  $('#sw', body).onclick = () => authModal(reg ? 'login' : 'register');
+  if ($('#inst', body)) $('#inst', body).onclick = installHelp;
+  $('#adm', body).onclick = adminLogin;
+  if (!reg) $('#lupa', body).onclick = lupaPin;
+  $('#fa', body).onsubmit = async e => {
     e.preventDefault();
     const f = Object.fromEntries(new FormData(e.target)); const b = $('.btn', e.target);
     const wa = normWa(f.wa);
@@ -201,6 +205,7 @@ function authView(mode = 'login') {
         if (error) throw error;
       }
       await enter();
+      if (S.user) closeAuth(); else b.disabled = false;
     } catch (err) { toast(msg(err)); b.disabled = false; }
   };
 }
@@ -216,6 +221,7 @@ function adminLogin() {
       const { data: a } = await sb.from('admins').select('user_id').eq('user_id', data.user.id).maybeSingle();
       if (!a) { await sb.auth.signOut(); throw new Error('Akun ini bukan admin'); }
       m.close(); await enter();
+      if (S.user) closeAuth();
     } catch (err) { toast(msg(err)); b.disabled = false; }
   };
 }
@@ -242,10 +248,10 @@ function lupaPin() {
   };
 }
 
-/* ---------- Masuk ke aplikasi ---------- */
+/* ---------- Masuk ke aplikasi (tamu atau anggota) ---------- */
 async function enter() {
   const { data: { session } } = await sb.auth.getSession();
-  if (!session) { authView('login'); hideSplash(); return; }
+  if (!session) { guestMode(); hideSplash(); return; }
   S.user = session.user;
   const [p, a] = await Promise.all([
     sb.from('profiles').select('*').eq('id', S.user.id).maybeSingle(),
@@ -253,10 +259,11 @@ async function enter() {
   ]);
   S.profile = p.data; S.admin = !!a.data;
   if (!S.profile && !S.admin) {
-    await sb.auth.signOut(); authView('login'); hideSplash();
+    await sb.auth.signOut(); guestMode(); hideSplash();
     toast(p.error ? msg(p.error) : 'Data akun tidak ditemukan'); return;
   }
   shell(); startPresence(); hideSplash();
+  if (PENDING) { const t = PENDING; PENDING = null; if (t.r && t.r !== 'beranda') go(t.r, t.arg); }
   if (!S.admin && !S.profile.foto_url) gate();
 }
 
@@ -264,6 +271,7 @@ async function enter() {
    CANGKANG APLIKASI
    ===================================================================== */
 function avatarHtml() {
+  if (!S.user) return `<b>${ic('user', 18)}</b>`;
   if (S.profile?.foto_url) return `<img src="${esc(S.profile.foto_url)}" alt="">`;
   return `<b>${esc((S.profile?.nama || 'A')[0].toUpperCase())}</b>`;
 }
@@ -273,8 +281,8 @@ function shell() {
   app.innerHTML = `
     <header class="top">
       <button class="ib" id="b-info" aria-label="Info aplikasi">${ic('info', 24)}</button>
-      <h1>Tambak Bersholawat</h1>
-      <button class="ib av" id="b-prof" aria-label="Profil">${avatarHtml()}</button>
+      <h1>Nawa</h1>
+      <button class="ib av" id="b-prof" aria-label="${S.user ? 'Profil' : 'Masuk'}">${avatarHtml()}</button>
     </header>
     <main id="main"></main>
     <nav class="bot"><i class="ind"></i>${NAV.map(([r, l, i]) => `<button data-r="${r}">${ic(i, 23)}<span>${l}</span></button>`).join('')}</nav>`;
@@ -289,6 +297,7 @@ function shell() {
 
 function go(r, arg, still, fromPop) {
   const main = $('#main'); if (!main) return;
+  if (!S.user && LOCKED.includes(r)) { needLogin({ r, arg }); return; }
   const prev = ORDER.indexOf(S.route), st = main.scrollTop;
   const was = S.route;
   S.route = r; S.arg = arg ?? DEF[r] ?? null;
@@ -403,7 +412,7 @@ function onAction(e) {
   else if (a === 'info') infoVersi();
   else if (a === 'photo') changePhoto();
   else if (a === 'theme') { localStorage.setItem('nawa_theme', x); applyTheme(); refresh(); }
-  else if (a === 'logout') confirmBox('Keluar dari aplikasi?', async () => { S.user = null; stopPresence(); await sb.auth.signOut(); Object.keys(cache).forEach(k => delete cache[k]); FEED = null; authView('login'); }, 'Keluar');
+  else if (a === 'logout') confirmBox('Keluar dari aplikasi?', async () => { S.user = null; stopPresence(); await sb.auth.signOut(); Object.keys(cache).forEach(k => delete cache[k]); FEED = null; guestMode(); }, 'Keluar');
 }
 
 /* =====================================================================
@@ -412,7 +421,7 @@ function onAction(e) {
 const V = {};
 
 V.beranda = el => {
-  const name = S.admin ? 'Admin' : first(S.profile?.nama);
+  const name = S.admin ? 'Admin' : S.user ? first(S.profile?.nama) : 'Sahabat Nawa';
   const qa = [['Jadwal', 'calendar', 'go:jadwal'], ['Teks Sholawat', 'book', 'go:pustaka:teks'], ['Audio', 'music', 'go:pustaka:audio'],
               ['Galeri', 'image', 'go:komunitas:galeri'], ['Donasi', 'heart', 'go:dukung:donasi'], ['Usulan', 'users', 'go:komunitas:usulan']];
   el.innerHTML = `<div class="tkw"><div class="ticker"><div class="tk-ic">📢</div><div class="tk-win st" id="tk">Memuat kabar…</div></div></div>
@@ -463,7 +472,7 @@ V.jadwal = el => {
 
 V.pustaka = el => {
   const cur = S.arg;
-  el.innerHTML = head('Pustaka Sholawat & Kajian', 'Teks, ebook, audio, dan arsip jama\'ah') +
+  el.innerHTML = head('Pustaka', 'Teks, ebook, audio, dan arsip jama\'ah') +
     seg([['teks', 'Teks Sholawat'], ['ebook', 'Ebook'], ['audio', 'Audio'], ['arsip', 'Arsip']], cur) +
     `<div class="pad stg" id="ls">${SK}</div>` + fab('pustaka');
   load('pustaka', (rows, err) => {
@@ -550,7 +559,7 @@ function openImg(r) { if (r) modal(`<div class="lb"><img src="${esc(r.foto_url)}
 
 V.dukung = el => {
   const cur = S.arg;
-  el.innerHTML = head('Transparansi & Dukungan', 'Program sosial, donasi, dan laporan kegiatan') + seg([['program', 'Program Sosial'], ['donasi', 'Donasi / Infak'], ['laporan', 'Laporan']], cur) +
+  el.innerHTML = head('Support', 'Program sosial, donasi, dan laporan kegiatan') + seg([['program', 'Program Sosial'], ['donasi', 'Donasi / Infak'], ['laporan', 'Laporan']], cur) +
     `<div class="pad stg" id="ls">${SK}</div>` + fab(cur);
   load(cur, (rows, err) => {
     const ls = $('#ls', el); if (!ls) return;
@@ -641,7 +650,7 @@ function playYt(t, id) {
 }
 function postHtml(p) {
   return `<article class="post" data-id="${p.id}">
-    <div class="ph"><img src="icon-192.png" alt=""><div><b>Tambak Bersholawat</b><small>${ago(p.created_at)}</small></div>${S.admin ? `<div class="adm"><button class="dl" data-a="delpost:${p.id}" aria-label="Hapus">${ic('trash', 18)}</button></div>` : ''}</div>
+    <div class="ph"><img src="icon-192.png" alt=""><div><b>Nawa</b><small>${ago(p.created_at)}</small></div>${S.admin ? `<div class="adm"><button class="dl" data-a="delpost:${p.id}" aria-label="Hapus">${ic('trash', 18)}</button></div>` : ''}</div>
     ${p.youtube_id ? ytHtml(p.youtube_id) : p.gambar_url ? `<img class="pimg" loading="lazy" src="${esc(p.gambar_url)}" alt="">` : ''}
     ${p.isi ? `<p class="pt">${esc(p.isi)}</p>` : ''}
     <div class="pa"><button data-a="like:${p.id}" class="${p.liked ? 'liked' : ''}" aria-label="Suka">${ic('heart', 22)}<span>${p.likes}</span></button><button data-a="coms:${p.id}" aria-label="Komentar">${ic('comment', 22)}<span>${p.coms}</span></button></div>
@@ -659,11 +668,16 @@ function paintPost(p) {
 async function fetchFeed() {
   const { data: posts, error } = await sb.from('posts').select('*').order('created_at', { ascending: false }).limit(20);
   if (error) throw error;
-  const ids = posts.map(p => p.id); let L = [], K = [];
-  if (ids.length) {
-    const [a, b] = await Promise.all([sb.from('post_likes').select('post_id,user_id').in('post_id', ids), sb.from('post_comments').select('post_id').in('post_id', ids)]);
-    L = a.data || []; K = b.data || [];
+  if (!posts.length) return [];
+  const ids = posts.map(p => p.id);
+  const r = await sb.rpc('post_stats', { p_ids: ids });
+  if (!r.error && Array.isArray(r.data)) {
+    const st = new Map(r.data.map(x => [x.post_id, x]));
+    return posts.map(p => { const x = st.get(p.id) || {}; return { ...p, likes: Number(x.likes) || 0, coms: Number(x.coms) || 0, liked: !!x.liked }; });
   }
+  if (!S.user) return posts.map(p => ({ ...p, likes: 0, coms: 0, liked: false }));
+  const [la, ka] = await Promise.all([sb.from('post_likes').select('post_id,user_id').in('post_id', ids), sb.from('post_comments').select('post_id').in('post_id', ids)]);
+  const L = la.data || [], K = ka.data || [];
   return posts.map(p => ({ ...p, likes: L.filter(x => x.post_id === p.id).length, liked: L.some(x => x.post_id === p.id && x.user_id === S.user.id), coms: K.filter(x => x.post_id === p.id).length }));
 }
 function loadFeed() {
@@ -672,6 +686,7 @@ function loadFeed() {
     .catch(err => { if (!FEED) { const b = $('#feed'); if (b) b.innerHTML = `<div class="empty">Gagal memuat postingan.<br>${esc(msg(err))}</div>`; } });
 }
 async function toggleLike(id) {
+  if (!S.user) return needLogin();
   const p = FEED?.find(x => x.id === id); if (!p || busy.has(id)) return;
   busy.add(id); const was = p.liked;
   p.liked = !was; p.likes += was ? -1 : 1; paintPost(p);
@@ -750,6 +765,7 @@ function composePost() {
   };
 }
 async function openComments(id) {
+  if (!S.user) return needLogin();
   const m = modal(`<h3>Komentar</h3><div class="cl2" id="cl"><small>Memuat…</small></div>
     <form class="cf" id="cf"><input name="t" maxlength="500" placeholder="Tulis komentar…" autocomplete="off" required><button class="btn" style="width:auto;padding:0 18px">Kirim</button></form>`);
   const draw = async () => {
@@ -837,7 +853,7 @@ addEventListener('popstate', e => {
   if (!S.user || !$('#main')) return;
   const st = e.state; if (st && st.r) go(st.r, st.a ?? undefined, false, true);
 });
-sb.auth.onAuthStateChange(ev => { if (ev === 'SIGNED_OUT' && S.user) { S.user = null; stopPresence(); authView('login'); } });
+sb.auth.onAuthStateChange(ev => { if (ev === 'SIGNED_OUT' && S.user) guestMode(); });
 let swReg = null, swReloaded = false;
 if ('serviceWorker' in navigator) {
   const hadCtl = !!navigator.serviceWorker.controller;
@@ -857,5 +873,5 @@ async function cekUpdate() {
   try { await swReg.update(); } catch { return toast('Tidak ada koneksi internet'); }
   setTimeout(() => { if (!swReloaded) toast('Aplikasi sudah versi terbaru'); }, 2500);
 }
-enter().catch(() => { authView('login'); hideSplash(); });
+enter().catch(() => { guestMode(); hideSplash(); });
 })();

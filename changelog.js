@@ -6,6 +6,17 @@
 // =====================================================================
 window.NAWA_CHANGELOG = [
   {
+    v: '1.9', t: '28 November 2026',
+    add: [
+      'Aplikasi bisa dibuka gratis tanpa akun: Beranda dan Jadwal terbuka untuk umum',
+      'Pustaka, Komunitas, dan Support khusus yang punya akun; login atau registrasi muncul sebagai popup saat membukanya',
+      'Nama di semua halaman diganti menjadi Nawa'
+    ],
+    fix: [
+      'Nama menu dipersingkat: Pustaka dan Support'
+    ]
+  },
+  {
     v: '1.8', t: '28 November 2026',
     add: [
       'Menu Kelompok diganti User: admin melihat semua user terdaftar, user melihat siapa yang sedang aktif (hanya bisa dilihat)',
